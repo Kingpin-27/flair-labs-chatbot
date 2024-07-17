@@ -25,6 +25,27 @@ pip install -r requirements.txt
 ├───uploads                 <---- directory for all RAG file uploads
 ```
 
+## Configuration for Rag Application
+
+you can use any variation of these 2 JSONs
+
+```JSON
+{
+    "vector_database": "KDB",
+    "use_cohere_reranking": true,
+    "embedding_model": "text-embedding-3-small",
+    "chunking_size": 1536
+}
+```
+```JSON
+{
+    "vector_database": "PINECONE",
+    "use_cohere_reranking": false,
+    "embedding_model": "voyage-2",
+    "chunking_size": 1024
+}
+```
+
 ## Start the application
 
 1. Run `npm run dev:be` to start the Node backend app
