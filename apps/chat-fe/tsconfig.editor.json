@@ -1,0 +1,6 @@
+{
+    "extends": "./tsconfig.json",
+    "include": ["src/**/*.ts", "../../libs/frontend/utils/api-client/src/type.d.ts"],
+    "compilerOptions": {},
+    "exclude": ["jest.config.ts", "src/**/*.test.ts", "src/**/*.spec.ts"]
+}

@@ -1,0 +1,25 @@
+.hasImage:hover section {
+    background-color: rgba(5, 5, 5, 0.4);
+}
+.hasImage:hover button:hover {
+    background: rgba(5, 5, 5, 0.45);
+}
+
+.hide-drag-section {
+    p {
+        opacity: 0;
+    }
+    i {
+        opacity: 0;
+    }
+}
+
+.disabled-area {
+    @apply bg-emerald-100;
+    p {
+        @apply opacity-100;
+    }
+    i {
+        @apply opacity-100;
+    }
+}

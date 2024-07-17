@@ -1,0 +1,8 @@
+<div class="relative h-full" [ngClass]="{ 'flex flex-col justify-center': !isFileUploadCompleted }">
+    <div *ngIf="!isFileUploadCompleted; else chatInterface">
+        <app-upload (areFilesUploaded)="isFileUploadCompleted = $event"></app-upload>
+    </div>
+    <ng-template #chatInterface>
+        <app-chat [@enterAnimation]></app-chat>
+    </ng-template>
+</div>

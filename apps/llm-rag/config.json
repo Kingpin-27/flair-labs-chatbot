@@ -1,0 +1,6 @@
+{
+    "vector_database": "PINECONE",
+    "use_cohere_reranking": false,
+    "embedding_model": "voyage-2",
+    "chunking_size": 1024
+}

@@ -1,0 +1,8 @@
+{
+    "name": "@flair-labs-chatbot/backend/chatbot-core",
+    "version": "0.0.1",
+    "dependencies": {},
+    "type": "commonjs",
+    "main": "./index.cjs",
+    "private": true
+}

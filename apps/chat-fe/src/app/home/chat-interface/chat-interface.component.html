@@ -1,0 +1,105 @@
+<!-- component -->
+<div class="flex-1 p-2 justify-between flex flex-col h-full">
+    <div
+        #messagesTemplate
+        class="flex flex-col space-y-4 p-3 overflow-y-auto scrollbar-thumb-blue scrollbar-thumb-rounded scrollbar-track-blue-lighter scrollbar-w-2 scrolling-touch"
+        [ngClass]="{ 'justify-between flex flex-col h-full': messages.length === 0 }"
+    >
+        <div *ngIf="messages.length === 0" class="font-title text-4xl text-center mt-40">
+            <p>
+                Your files were uploaded successfully.<br />
+                Start typing your query below to interact with our AI assistant
+            </p>
+        </div>
+        <div *ngIf="messages.length === 0" class="animate-bounce animate-infinite flex justify-center">
+            <svg
+                class="w-12 h-12"
+                version="1.1"
+                id="Capa_1"
+                xmlns="http://www.w3.org/2000/svg"
+                xmlns:xlink="http://www.w3.org/1999/xlink"
+                viewBox="0 0 312.757 312.757"
+                xml:space="preserve"
+                fill="#000000"
+            >
+                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                <g id="SVGRepo_iconCarrier">
+                    <g>
+                        <g>
+                            <polygon
+                                style="fill: #010002"
+                                points="244.062,184.792 170.623,258.23 170.623,0 142.139,0 142.139,258.247 68.69,184.792 48.549,204.939 156.379,312.757 264.208,204.939 "
+                            ></polygon>
+                        </g>
+                    </g>
+                </g>
+            </svg>
+        </div>
+        <div *ngFor="let message of messages">
+            <div *ngIf="message.type == 'user'; else systemMessage">
+                <div class="flex items-end justify-end">
+                    <div class="flex flex-col space-y-2 max-w-xl mx-2 order-1 items-end">
+                        <div>
+                            <span
+                                class="px-4 py-2 rounded-lg inline-block rounded-br-none bg-gradient-to-r from-emerald-600 to-lime-500 text-white"
+                                [innerText]="message.content"
+                            >
+                            </span>
+                        </div>
+                    </div>
+                    <svg
+                        class="rounded-full order-2 w-8 h-8 overflow-hidden bg-gray-200 text-gray-400 -left-1"
+                        fill="currentColor"
+                        viewBox="0 0 20 20"
+                        xmlns="http://www.w3.org/2000/svg"
+                    >
+                        <path fill-rule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clip-rule="evenodd"></path>
+                    </svg>
+                </div>
+            </div>
+            <ng-template #systemMessage>
+                <div class="flex items-end">
+                    <div class="flex flex-col space-y-2 max-w-xl mx-2 order-2 items-start">
+                        <div>
+                            <span
+                                class="px-4 py-2 rounded-lg inline-block rounded-bl-none bg-zinc-200 text-black"
+                                [ngClass]="{ 'animate-pulse w-96 h-12 bg-neutral-300': message.content.length === 0 }"
+                                [innerText]="message.content"
+                            >
+                            </span>
+                        </div>
+                    </div>
+                    <img src="Flair-Logo.png" alt="My profile" class="w-6 h-8 order-1 mb-2" />
+                </div>
+            </ng-template>
+        </div>
+    </div>
+    <div class="pt-4 flex items-center border-t-2 border-zinc-300">
+        <input
+            [(ngModel)]="userChatQuery"
+            (keydown.enter)="onSendClicked()"
+            type="text"
+            placeholder="Type your query..."
+            class="flex-1 border border-emerald-500 rounded-full px-4 py-2 focus:outline-none focus:ring-2 focus:ring-emerald-600 "
+        />
+        <button
+            (click)="onSendClicked()"
+            class="bg-gradient-to-l from-emerald-500 to-lime-400 text-white rounded-full p-2 ml-2 focus:outline-none  hover:bg-gradient-to-bl"
+        >
+            <svg width="25px" height="25px" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" stroke="#ffffff">
+                <g id="SVGRepo_bgCarrier" stroke-width="0"></g>
+                <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"></g>
+                <g id="SVGRepo_iconCarrier">
+                    <path
+                        d="M11.5003 12H5.41872M5.24634 12.7972L4.24158 15.7986C3.69128 17.4424 3.41613 18.2643 3.61359 18.7704C3.78506 19.21 4.15335 19.5432 4.6078 19.6701C5.13111 19.8161 5.92151 19.4604 7.50231 18.7491L17.6367 14.1886C19.1797 13.4942 19.9512 13.1471 20.1896 12.6648C20.3968 12.2458 20.3968 11.7541 20.1896 11.3351C19.9512 10.8529 19.1797 10.5057 17.6367 9.81135L7.48483 5.24303C5.90879 4.53382 5.12078 4.17921 4.59799 4.32468C4.14397 4.45101 3.77572 4.78336 3.60365 5.22209C3.40551 5.72728 3.67772 6.54741 4.22215 8.18767L5.24829 11.2793C5.34179 11.561 5.38855 11.7019 5.407 11.8459C5.42338 11.9738 5.42321 12.1032 5.40651 12.231C5.38768 12.375 5.34057 12.5157 5.24634 12.7972Z"
+                        stroke="#ffffff"
+                        stroke-width="2"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                    ></path>
+                </g>
+            </svg>
+        </button>
+    </div>
+</div>

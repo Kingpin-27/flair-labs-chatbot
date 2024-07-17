@@ -1,0 +1,21 @@
+{
+    "name": "backend-chatbot-core",
+    "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+    "sourceRoot": "libs/backend/chatbot-core/src",
+    "projectType": "library",
+    "tags": [],
+    "targets": {
+        "build": {
+            "executor": "@nx/esbuild:esbuild",
+            "outputs": ["{options.outputPath}"],
+            "options": {
+                "outputPath": "dist/libs/backend/chatbot-core",
+                "main": "libs/backend/chatbot-core/src/index.ts",
+                "tsConfig": "libs/backend/chatbot-core/tsconfig.lib.json",
+                "assets": ["libs/backend/chatbot-core/*.md"],
+                "@nx/dependency-checks": true,
+                "format": ["cjs"]
+            }
+        }
+    }
+}
