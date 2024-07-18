@@ -24,6 +24,7 @@ from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 from llama_index.core.schema import IndexNode
 from llama_index.core.query_engine import RetrieverQueryEngine
+from llama_index.core.retrievers import RecursiveRetriever
 
 import json
 import kdbai_client as kdbai
@@ -129,6 +130,8 @@ def get_rag_query_engine(current_file_path: str) -> BaseQueryEngine:
 
     llm = OpenAI(model=GENERATION_MODEL)
 
+    embed_model = get_embedding_model(config["embedding_model"])
+
     documents = get_parsed_documents(current_file_path)
 
     # Parse the documents using MarkdownElementNodeParser
@@ -163,19 +166,31 @@ def get_rag_query_engine(current_file_path: str) -> BaseQueryEngine:
         original_node = IndexNode.from_text_node(base_node, base_node.node_id)
         all_nodes.append(original_node)
 
+    all_nodes_dict = {node.node_id: node for node in all_nodes}
+
     storage_context = initialize_vector_store_and_storage_context(
         config["vector_database"], config["chunking_size"]
     )
 
-    recursive_index = VectorStoreIndex(nodes=all_nodes, storage_context=storage_context)
+    recursive_index = VectorStoreIndex(
+        nodes=all_nodes, storage_context=storage_context, embed_model=embed_model
+    )
+    vector_retriever_chunk = recursive_index.as_retriever(similarity_top_k=8)
+
+    retriever_chunk = RecursiveRetriever(
+        "vector",
+        retriever_dict={"vector": vector_retriever_chunk},
+        node_dict=all_nodes_dict,
+        verbose=True,
+    )
 
     node_postprocessors = []
     if config["use_cohere_reranking"]:
-        cohere_rerank = CohereRerank(top_n=10)
+        cohere_rerank = CohereRerank(top_n=5)
         node_postprocessors = [cohere_rerank]
 
-    query_engine = recursive_index.as_query_engine(
-        similarity_top_k=15, node_postprocessors=node_postprocessors
+    query_engine = RetrieverQueryEngine.from_args(
+        retriever_chunk, node_postprocessors=node_postprocessors
     )
 
     return query_engine
