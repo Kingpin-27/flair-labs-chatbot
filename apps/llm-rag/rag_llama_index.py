@@ -2,9 +2,7 @@ from llama_parse import LlamaParse
 from llama_index.core import (
     VectorStoreIndex,
     Document,
-    Settings,
     StorageContext,
-    ServiceContext,
 )
 from llama_index.core.base.response.schema import (
     AsyncStreamingResponse,
@@ -25,7 +23,6 @@ from common_types import Configuration
 from pinecone.grpc import PineconeGRPC as Pinecone
 from pinecone import ServerlessSpec
 from llama_index.core.schema import IndexNode
-from llama_index.core.retrievers import RecursiveRetriever
 from llama_index.core.query_engine import RetrieverQueryEngine
 
 import json
@@ -131,9 +128,6 @@ def get_rag_query_engine(current_file_path: str) -> BaseQueryEngine:
     config = get_config(current_file_path)
 
     llm = OpenAI(model=GENERATION_MODEL)
-
-    # Settings.llm = llm
-    # Settings.embed_model = get_embedding_model(config["embedding_model"])
 
     documents = get_parsed_documents(current_file_path)
 
