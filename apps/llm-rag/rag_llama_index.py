@@ -169,45 +169,20 @@ def get_rag_query_engine(current_file_path: str) -> BaseQueryEngine:
         original_node = IndexNode.from_text_node(base_node, base_node.node_id)
         all_nodes.append(original_node)
 
-    all_nodes_dict = {node.node_id: node for node in all_nodes}
-    service_context = ServiceContext.from_defaults(
-        embed_model=get_embedding_model(config["embedding_model"]), llm=llm
+    storage_context = initialize_vector_store_and_storage_context(
+        config["vector_database"], config["chunking_size"]
     )
 
-    # creating index
-    index = VectorStoreIndex(nodes=all_nodes, service_context=service_context)
+    recursive_index = VectorStoreIndex(nodes=all_nodes, storage_context=storage_context)
 
-    vector_retriever_chunk = index.as_retriever(similarity_top_k=2)
+    node_postprocessors = []
+    if config["use_cohere_reranking"]:
+        cohere_rerank = CohereRerank(top_n=10)
+        node_postprocessors = [cohere_rerank]
 
-    retriever_chunk = RecursiveRetriever(
-        "vector",
-        retriever_dict={"vector": vector_retriever_chunk},
-        node_dict=all_nodes_dict,
-        verbose=True,
+    query_engine = recursive_index.as_query_engine(
+        similarity_top_k=15, node_postprocessors=node_postprocessors
     )
-
-    query_engine = RetrieverQueryEngine.from_args(
-        retriever_chunk, service_context=service_context
-    )
-
-    # storage_context = initialize_vector_store_and_storage_context(
-    #     config["vector_database"], config["chunking_size"]
-    # )
-
-    # # Create the index, inserts base_nodes and objects into KDB.AI
-    # recursive_index = VectorStoreIndex(
-    #     nodes=base_nodes + objects, storage_context=storage_context
-    # )
-
-    # node_postprocessors = []
-    # if config["use_cohere_reranking"]:
-    #     cohere_rerank = CohereRerank(top_n=10)
-    #     node_postprocessors = [cohere_rerank]
-
-    # ### Create the query_engine to execute RAG pipeline using LlamaIndex, KDB.AI, and Cohere reranker
-    # query_engine = recursive_index.as_query_engine(
-    #     similarity_top_k=15, node_postprocessors=node_postprocessors
-    # )
 
     return query_engine
 
@@ -230,6 +205,9 @@ def get_answer_with_sources(
         json.dump(data, file)
         file.write("\n")
 
-    source_file_data = [value["file_name"] for value in metadata.values()]
+    config = get_config(current_file_path)
+    source_file_data = set()
+    if config["vector_database"] == PINECONE_VECTOR_STORE:
+        source_file_data = set(value["file_name"] for value in metadata.values())
 
     return {"result": answer.response, "source": source_file_data}
