@@ -8,7 +8,7 @@ llama-index-postprocessor-cohere-rerank
 llama-index-vector-stores-kdbai
 llama-index-embeddings-voyageai
 llama-index-vector-stores-pinecone
-pinecone-client
+pinecone-client[grpc]
 kdbai_client==0.1.2
 fastapi
 uvicorn

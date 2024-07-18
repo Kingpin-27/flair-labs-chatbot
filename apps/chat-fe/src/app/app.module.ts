@@ -9,13 +9,13 @@ import { ChatInterfaceComponent } from "./home/chat-interface/chat-interface.com
 import { HomeComponent } from "./home/home.component";
 import { UploadComponent } from "./home/upload-box/upload.component";
 import { FormsModule } from "@angular/forms";
-import { HttpClientModule } from "@angular/common/http";
+import { provideHttpClient, withInterceptorsFromDi } from "@angular/common/http";
 import { BrowserAnimationsModule, provideAnimations } from "@angular/platform-browser/animations";
 
 @NgModule({
     declarations: [AppComponent, HomeComponent, UploadComponent, ChatInterfaceComponent],
-    imports: [RouterModule, CommonModule, AppRoutingModule, BrowserModule, FormsModule, HttpClientModule, BrowserAnimationsModule],
-    providers: [ApiClientService, FileUploadService, provideAnimations()],
+    imports: [RouterModule, CommonModule, AppRoutingModule, BrowserModule, FormsModule, BrowserAnimationsModule],
+    providers: [ApiClientService, FileUploadService, provideAnimations(), provideHttpClient(withInterceptorsFromDi())],
     bootstrap: [AppComponent],
 })
 export class AppModule {}

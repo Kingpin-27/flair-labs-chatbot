@@ -48,7 +48,15 @@ export class ChatInterfaceComponent implements AfterViewInit {
         const lastMessageIndex = this.messages.length - 1;
         let lastMessage = this.messages[lastMessageIndex];
         if (lastMessage) {
-            lastMessage.content = systemResponse;
+            let content = systemResponse.result.replace(new RegExp("\n", "g"), "<br>");
+            if (systemResponse.source.length > 0) {
+                let sourceStr = "";
+                systemResponse.source.forEach((source: string, index: number) => {
+                    sourceStr += `${index + 1}. ${source}<br>`;
+                });
+                content += "<br><strong>Source Files:</strong><br>" + sourceStr;
+            }
+            lastMessage.content = content;
         }
         setTimeout(() => this.scrollToBottom(), 0);
     }

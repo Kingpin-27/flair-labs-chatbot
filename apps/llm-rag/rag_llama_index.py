@@ -4,9 +4,16 @@ from llama_index.core import (
     Document,
     Settings,
     StorageContext,
+    ServiceContext,
+)
+from llama_index.core.base.response.schema import (
+    AsyncStreamingResponse,
+    PydanticResponse,
+    Response,
+    StreamingResponse,
 )
 from llama_index.core.base.base_query_engine import BaseQueryEngine
-from llama_index.core.node_parser import MarkdownElementNodeParser
+from llama_index.core.node_parser import MarkdownElementNodeParser, SimpleNodeParser
 from llama_index.llms.openai import OpenAI
 from llama_index.embeddings.openai import OpenAIEmbedding
 from llama_index.vector_stores.kdbai import KDBAIVectorStore
@@ -15,7 +22,11 @@ from llama_index.core import SimpleDirectoryReader
 from llama_index.embeddings.voyageai import VoyageEmbedding
 from llama_index.vector_stores.pinecone import PineconeVectorStore
 from common_types import Configuration
-from pinecone import Pinecone, ServerlessSpec
+from pinecone.grpc import PineconeGRPC as Pinecone
+from pinecone import ServerlessSpec
+from llama_index.core.schema import IndexNode
+from llama_index.core.retrievers import RecursiveRetriever
+from llama_index.core.query_engine import RetrieverQueryEngine
 
 import json
 import kdbai_client as kdbai
@@ -102,7 +113,9 @@ def get_parsed_documents(current_file_path: str) -> List[Document]:
     )
 
     file_extractor = {".pdf": parser}
-    return SimpleDirectoryReader(upload_dir, file_extractor=file_extractor).load_data()
+    return SimpleDirectoryReader(upload_dir, file_extractor=file_extractor).load_data(
+        show_progress=True
+    )
 
 
 def get_embedding_model(model: str):
@@ -119,8 +132,8 @@ def get_rag_query_engine(current_file_path: str) -> BaseQueryEngine:
 
     llm = OpenAI(model=GENERATION_MODEL)
 
-    Settings.llm = llm
-    Settings.embed_model = get_embedding_model(config["embedding_model"])
+    # Settings.llm = llm
+    # Settings.embed_model = get_embedding_model(config["embedding_model"])
 
     documents = get_parsed_documents(current_file_path)
 
@@ -132,23 +145,91 @@ def get_rag_query_engine(current_file_path: str) -> BaseQueryEngine:
 
     base_nodes, objects = node_parser.get_nodes_and_objects(nodes)
 
-    storage_context = initialize_vector_store_and_storage_context(
-        config["vector_database"], config["chunking_size"]
+    for idx, node in enumerate(base_nodes):
+        node.id_ = f"node-{idx}"
+
+    # create parent child documents
+    sub_chunk_sizes = [128, 256, 512]
+    sub_node_parsers = [
+        SimpleNodeParser.from_defaults(chunk_size=chunk_size, chunk_overlap=0)
+        for chunk_size in sub_chunk_sizes
+    ]
+
+    all_nodes = []
+    for base_node in base_nodes:
+        for node_parser in sub_node_parsers:
+            sub_nodes_list = node_parser.get_nodes_from_documents([base_node])
+            sub_inodes = [
+                IndexNode.from_text_node(sub_node, base_node.node_id)
+                for sub_node in sub_nodes_list
+            ]
+            all_nodes.extend(sub_inodes)
+
+        # also add original node to node
+        original_node = IndexNode.from_text_node(base_node, base_node.node_id)
+        all_nodes.append(original_node)
+
+    all_nodes_dict = {node.node_id: node for node in all_nodes}
+    service_context = ServiceContext.from_defaults(
+        embed_model=get_embedding_model(config["embedding_model"]), llm=llm
     )
 
-    # Create the index, inserts base_nodes and objects into KDB.AI
-    recursive_index = VectorStoreIndex(
-        nodes=base_nodes + objects, storage_context=storage_context
+    # creating index
+    index = VectorStoreIndex(nodes=all_nodes, service_context=service_context)
+
+    vector_retriever_chunk = index.as_retriever(similarity_top_k=2)
+
+    retriever_chunk = RecursiveRetriever(
+        "vector",
+        retriever_dict={"vector": vector_retriever_chunk},
+        node_dict=all_nodes_dict,
+        verbose=True,
     )
 
-    node_postprocessors = []
-    if config["use_cohere_reranking"]:
-        cohere_rerank = CohereRerank(top_n=10)
-        node_postprocessors = [cohere_rerank]
-
-    ### Create the query_engine to execute RAG pipeline using LlamaIndex, KDB.AI, and Cohere reranker
-    query_engine = recursive_index.as_query_engine(
-        similarity_top_k=15, node_postprocessors=node_postprocessors
+    query_engine = RetrieverQueryEngine.from_args(
+        retriever_chunk, service_context=service_context
     )
+
+    # storage_context = initialize_vector_store_and_storage_context(
+    #     config["vector_database"], config["chunking_size"]
+    # )
+
+    # # Create the index, inserts base_nodes and objects into KDB.AI
+    # recursive_index = VectorStoreIndex(
+    #     nodes=base_nodes + objects, storage_context=storage_context
+    # )
+
+    # node_postprocessors = []
+    # if config["use_cohere_reranking"]:
+    #     cohere_rerank = CohereRerank(top_n=10)
+    #     node_postprocessors = [cohere_rerank]
+
+    # ### Create the query_engine to execute RAG pipeline using LlamaIndex, KDB.AI, and Cohere reranker
+    # query_engine = recursive_index.as_query_engine(
+    #     similarity_top_k=15, node_postprocessors=node_postprocessors
+    # )
 
     return query_engine
+
+
+def get_answer_with_sources(
+    query_engine: RetrieverQueryEngine, user_query: str, current_file_path: str
+):
+    answer: Response | StreamingResponse | AsyncStreamingResponse | PydanticResponse = (
+        query_engine.query(user_query)
+    )
+    metadata = answer.metadata
+
+    results_file = str(os.path.join(current_file_path.parents[1], "llm-results.jsonl"))
+    with open(f"{results_file}", "a", encoding="utf-8") as file:
+        data = {
+            "user_query": user_query,
+            "llm_response": answer.response,
+            "metadata": str(metadata),
+        }
+        json.dump(data, file)
+        file.write("\n")
+
+    source_file_data = [value["file_name"] for value in metadata.values()]
+
+    return {"result": answer.response, "source": source_file_data}

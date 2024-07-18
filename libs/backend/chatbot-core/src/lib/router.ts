@@ -9,12 +9,11 @@ export const appRouter = trpcServer.router({
                 query: z.string(),
             }),
         )
-        .query(async ({ input }): Promise<string> => {
-            let result = "";
+        .query(async ({ input }): Promise<any> => {
+            let result = {};
             try {
                 const response = await axios.post("http://localhost:4444/answer", { query: input.query });
-                console.log("successful Result:", response.data);
-                result = response.data.result;
+                result = response.data;
             } catch (error: any) {
                 let errorMessage = error.message;
                 if (axios.isAxiosError(error)) {
